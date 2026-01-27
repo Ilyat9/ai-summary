@@ -21,8 +21,11 @@ app.add_middleware(
 )
 
 # Подключаем Redis
-redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
-
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+if REDIS_URL.startswith("rediss://"):
+    redis_client = redis.from_url(REDIS_URL, ssl_cert_reqs=None)
+else:
+    redis_client = redis.from_url(REDIS_URL)
 
 class URLRequest(BaseModel):
     url: HttpUrl
