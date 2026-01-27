@@ -235,7 +235,7 @@ def generate_summary(text: str) -> str:
         raise Exception(f"Ошибка генерации саммари: {str(e)}")
 
 
-@celery_app.task(bind=True, max_retries=3)
+@celery_app.task(bind=True, max_retries=1)
 def process_url(self, url: str) -> str:
     try:
         # Определяем тип URL и парсим
@@ -255,6 +255,6 @@ def process_url(self, url: str) -> str:
     except Exception as e:
         # Retry логика
         try:
-            raise self.retry(exc=e, countdown=5)
+            raise self.retry(exc=e, countdown=30)
         except self.MaxRetriesExceededError:
             return f"❌ Ошибка обработки: {str(e)}"
