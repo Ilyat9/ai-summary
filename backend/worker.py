@@ -81,6 +81,8 @@ def parse_youtube(url: str) -> str:
     """
     Получает транскрипт ютуб видео через yt_dlp
     """
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    cookies_file = os.path.join(base_dir, 'cookies.txt')
     proxy = os.getenv('YOUTUBE_PROXY')
     # Настройка SOCKS5 прокси для обхода блокировок
     
@@ -94,13 +96,14 @@ def parse_youtube(url: str) -> str:
         'skip_download': True,
         'ignoreerrors': True,
     }
+    if os.path.exists(cookies_file):
+        ydl_opts['cookiefile'] = cookies_file
+        print(f"DEBUG: Using cookies from {cookies_file}")
+    else:
+        print(f"DEBUG: cookies.txt NOT found at {cookies_file}")
     if proxy:
         ydl_opts['proxy'] = proxy
 
-    # Проверяем наличие файла cookies
-    cookies_file = 'cookies.txt'
-    if os.path.exists(cookies_file):
-        ydl_opts['cookiefile'] = cookies_file
     
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
