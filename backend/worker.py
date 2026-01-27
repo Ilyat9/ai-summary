@@ -12,11 +12,19 @@ key = os.getenv('GEMINI_API_KEY')
 print(f"DEBUG: Key found: {key[:5]}***" if key else "DEBUG: Key NOT found")
 genai.configure(api_key=key)
 
+REDIS_URL = os.getenv('CELERY_BROKER_URL') or os.getenv('REDIS_URL') or 'redis://localhost:6379/0'
+
 celery_app = Celery(
     'ai_summary',
-    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
-    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+    broker=REDIS_URL,
+    backend=os.getenv('CELERY_RESULT_BACKEND') or REDIS_URL
 )
+
+if REDIS_URL.startswith("rediss://"):
+    celery_app.conf.update(
+        broker_use_ssl={'ssl_cert_reqs': None},
+        redis_backend_use_ssl={'ssl_cert_reqs': None}
+    )
 
 celery_app.conf.update(
     task_serializer='json',
@@ -73,12 +81,11 @@ def parse_youtube(url: str) -> str:
     """
     Получает транскрипт ютуб видео через yt_dlp
     """
+    proxy = os.getenv('YOUTUBE_PROXY')
     # Настройка SOCKS5 прокси для обхода блокировок
-    proxy = 'socks5://10.0.2.2:7897'
     
     # Конфигурация yt_dlp
     ydl_opts = {
-        'proxy': proxy,
         'quiet': True,
         'no_warnings': True,
         'writesubtitles': True,
@@ -87,7 +94,9 @@ def parse_youtube(url: str) -> str:
         'skip_download': True,
         'ignoreerrors': True,
     }
-    
+    if proxy:
+        ydl_opts['proxy'] = proxy
+
     # Проверяем наличие файла cookies
     cookies_file = 'cookies.txt'
     if os.path.exists(cookies_file):
@@ -125,16 +134,13 @@ def parse_youtube(url: str) -> str:
                 raise ValueError("Субтитры недоступны для этого видео")
             
             # Скачиваем субтитры через прокси
-            proxies = {
-                'http': proxy,
-                'https': proxy,
-            }
+            request_proxies = { 'http': proxy, 'https': proxy } if proxy else None
             
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
             
-            response = requests.get(subtitle_url, headers=headers, proxies=proxies, timeout=15)
+            response = requests.get(subtitle_url, headers=headers, proxies=request_proxies, timeout=15)
             response.raise_for_status()
             
             # Получаем текст и очищаем от VTT форматирования
