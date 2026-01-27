@@ -48,7 +48,7 @@
 ### 1. Клонирование репозитория
 
 ```bash
-git clone https://github.com/your-username/ai-summary.git
+git clone https://github.com/Ilyat9/ai-summary.git
 cd ai-summary
 ```
 
