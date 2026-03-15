@@ -57,4 +57,4 @@ celerybeat-schedule
 celerybeat.pid
 
 # Redis dump
-dump.rdb
+dump.rdb"cookies.txt" 
